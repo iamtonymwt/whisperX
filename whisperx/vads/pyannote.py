@@ -249,6 +249,7 @@ class Pyannote(Vad):
                      onset: float = 0.5,
                      offset: Optional[float] = None,
                      ):
+        print('go inside Pyannote.merge_chunks')
         assert chunk_size > 0
         binarize = Binarize(max_duration=chunk_size, onset=onset, offset=offset)
         segments = binarize(segments)
