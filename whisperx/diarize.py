@@ -85,7 +85,51 @@ class DiarizationPipeline:
 
 def assign_word_speakers(
     diarize_df: pd.DataFrame,
-    transcript_result: Union[AlignedTranscriptionResult, TranscriptionResult],
+    transcript_result,
+    speaker_embeddings: Optional[dict[str, list[float]]] = None,
+    fill_nearest: bool = False,
+    is_music: bool = False,
+) -> Union[AlignedTranscriptionResult, TranscriptionResult]:
+    if is_music:
+        return assign_word_speakers_music(diarize_df, transcript_result["segments"])
+    else:
+        return assign_word_speakers_ori(
+            diarize_df,
+            transcript_result,
+            speaker_embeddings=speaker_embeddings,
+            fill_nearest=fill_nearest,
+        ) 
+
+def assign_word_speakers_music(diarization_df, segments):
+    updated_segments = []
+
+    for seg in segments:
+        seg_start = seg['start']
+        seg_end = seg['end']
+        speaker_times = {}
+
+        for _, row in diarization_df.iterrows():
+            dia_start = row['start']
+            dia_end = row['end']
+            speaker = row['speaker']
+
+            overlap_start = max(seg_start, dia_start)
+            overlap_end = min(seg_end, dia_end)
+
+            if overlap_start < overlap_end:
+                overlap_duration = overlap_end - overlap_start
+                speaker_times[speaker] = speaker_times.get(speaker, 0) + overlap_duration
+
+        speaker_list = [(speaker, round(duration, 3)) for speaker, duration in speaker_times.items()]
+        seg['speaker'] = speaker_list
+        updated_segments.append(seg)
+
+    return updated_segments
+
+
+def assign_word_speakers_ori(
+    diarize_df: pd.DataFrame,
+    transcript_result,
     speaker_embeddings: Optional[dict[str, list[float]]] = None,
     fill_nearest: bool = False,
 ) -> Union[AlignedTranscriptionResult, TranscriptionResult]:
