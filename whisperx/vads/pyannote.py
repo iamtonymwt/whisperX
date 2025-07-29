@@ -249,7 +249,6 @@ class Pyannote(Vad):
                      onset: float = 0.5,
                      offset: Optional[float] = None,
                      ):
-        print('go inside Pyannote.merge_chunks')
         assert chunk_size > 0
         binarize = Binarize(max_duration=chunk_size, onset=onset, offset=offset)
         segments = binarize(segments)
@@ -262,3 +261,25 @@ class Pyannote(Vad):
             return []
         assert segments_list, "segments_list is empty."
         return Vad.merge_chunks(segments_list, chunk_size, onset, offset)
+    
+    @staticmethod
+    def merge_chunks_music(segments,
+                     chunk_size,
+                     onset: float = 0.5,
+                     offset: Optional[float] = None,
+                     silence_gap=1.0,
+                     short_segment_threshold=3.0,
+                     ):
+        print('go inside Pyannote.merge_chunks')
+        assert chunk_size > 0
+        binarize = Binarize(max_duration=chunk_size, onset=onset, offset=offset)
+        segments = binarize(segments)
+        segments_list = []
+        for speech_turn in segments.get_timeline():
+            segments_list.append(SegmentX(speech_turn.start, speech_turn.end, "UNKNOWN"))
+
+        if len(segments_list) == 0:
+            print("No active speech found in audio")
+            return []
+        assert segments_list, "segments_list is empty."
+        return Vad.merge_chunks_music(segments_list, chunk_size, onset, offset, silence_gap, short_segment_threshold)

@@ -61,7 +61,7 @@ class Vad:
                         silence_gap=1.0,
                         short_segment_threshold=3.0
                         ):
-        print(f"segments: {segments[0]}")
+        print("go insede Vad.merge_chunks_music")
         curr_end = 0
         merged_segments = []
         seg_idxs: list[tuple] = []
