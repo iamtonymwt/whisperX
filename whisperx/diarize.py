@@ -91,7 +91,9 @@ def assign_word_speakers(
     is_music: bool = False,
 ) -> Union[AlignedTranscriptionResult, TranscriptionResult]:
     if is_music:
-        return assign_word_speakers_music(diarize_df, transcript_result["segments"])
+        ori_transcript_result = transcript_result
+        ori_transcript_result["segments"] = assign_word_speakers_music(diarize_df, transcript_result["segments"])
+        return ori_transcript_result
     else:
         return assign_word_speakers_ori(
             diarize_df,
