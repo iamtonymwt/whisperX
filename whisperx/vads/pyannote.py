@@ -282,6 +282,4 @@ class Pyannote(Vad):
             print("No active speech found in audio")
             return []
         assert segments_list, "segments_list is empty."
-        for segment in segments_list:
-            print(f"Segment: {segment.start:.2f} - {segment.end:.2f}")
         return Vad.merge_chunks_music(segments_list, chunk_size, onset, offset, silence_gap, short_segment_threshold)
