@@ -197,6 +197,9 @@ class FasterWhisperPipeline(Pipeline):
         print_progress=False,
         combined_progress=False,
         verbose=False,
+        is_music=False,
+        silence_gap=1.0,
+        short_segment_threshold=3.0,
     ) -> TranscriptionResult:
         if isinstance(audio, str):
             audio = load_audio(audio)
@@ -212,18 +215,38 @@ class FasterWhisperPipeline(Pipeline):
         # In case vad_model is manually assigned (see 'load_model') follow the functionality of pyannote toolkit
         if issubclass(type(self.vad_model), Vad):
             waveform = self.vad_model.preprocess_audio(audio)
-            merge_chunks =  self.vad_model.merge_chunks
+            if is_music:
+                merge_chunks = self.vad_model.merge_chunks_music
+                print("Using music-specific merge_chunks for VAD.")
+                vad_segments = self.vad_model({"waveform": waveform, "sample_rate": SAMPLE_RATE})
+                vad_segments = merge_chunks(
+                    vad_segments,
+                    chunk_size,
+                    onset=self._vad_params["vad_onset"],
+                    offset=self._vad_params["vad_offset"],
+                    silence_gap=silence_gap,
+                    short_segment_threshold=short_segment_threshold,
+                )
+            else:
+                merge_chunks =  self.vad_model.merge_chunks
+                vad_segments = self.vad_model({"waveform": waveform, "sample_rate": SAMPLE_RATE})
+                vad_segments = merge_chunks(
+                    vad_segments,
+                    chunk_size,
+                    onset=self._vad_params["vad_onset"],
+                    offset=self._vad_params["vad_offset"],
+                )
         else:
             waveform = Pyannote.preprocess_audio(audio)
             merge_chunks = Pyannote.merge_chunks
+            vad_segments = self.vad_model({"waveform": waveform, "sample_rate": SAMPLE_RATE})
+            vad_segments = merge_chunks(
+                vad_segments,
+                chunk_size,
+                onset=self._vad_params["vad_onset"],
+                offset=self._vad_params["vad_offset"],
+            )
 
-        vad_segments = self.vad_model({"waveform": waveform, "sample_rate": SAMPLE_RATE})
-        vad_segments = merge_chunks(
-            vad_segments,
-            chunk_size,
-            onset=self._vad_params["vad_onset"],
-            offset=self._vad_params["vad_offset"],
-        )
         if self.tokenizer is None:
             language = language or self.detect_language(audio)
             task = task or "transcribe"

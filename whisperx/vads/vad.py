@@ -51,4 +51,54 @@ class Vad:
         })
 
         return merged_segments
+    
+    # keep merge_chunks as static so it can be also used by manually assigned vad_model (see 'load_model')
+    @staticmethod
+    def merge_chunks_music(segments,
+                        chunk_size,
+                        onset: float,
+                        offset: Optional[float],
+                        silence_gap=1.0,
+                        short_segment_threshold=3.0
+                        ):
+        print("go insede Vad.merge_chunks_music")
+        curr_end = 0
+        merged_segments = []
+        seg_idxs: list[tuple] = []
+        speaker_idxs: list[Optional[str]] = []
+
+        curr_start = segments[0].start
+        for seg in segments:
+            # new logic: avoid silence gaps
+            has_silence_gap = (seg.start - curr_end) > silence_gap
+            exceeds_chunk = (seg.end - curr_start) > chunk_size
+
+            if (exceeds_chunk or has_silence_gap) and curr_end - curr_start > 0:
+                merged_segments.append({
+                    "start": curr_start,
+                    "end": curr_end,
+                    "segments": seg_idxs,
+                })
+                curr_start = seg.start
+                seg_idxs = []
+                speaker_idxs = []
+
+            curr_end = seg.end
+            seg_idxs.append((seg.start, seg.end))
+            speaker_idxs.append(seg.speaker)
+
+        # add final
+        merged_segments.append({
+            "start": curr_start,
+            "end": curr_end,
+            "segments": seg_idxs,
+        })
+
+        # new logic: filter out short segments
+        merged_segments = [
+            chunk for chunk in merged_segments
+            if (chunk["end"] - chunk["start"]) >= short_segment_threshold
+        ]
+
+        return merged_segments
 
